@@ -9,7 +9,11 @@ Notes
 """
  
 #------------- IMPORTS -------------#
+import os
+import tkinter as tk
 from tkinter import filedialog
+
+from orientation import Point
 
 
 
@@ -88,7 +92,67 @@ def get_image_dir_fpath():
 
 
     return _window_management_helper.pick_folder()
-    
+
+
+def load_points(jpg_dir, dng_dir):
+    """
+        Loads JPGs from a directory, converts to points,
+        and links to DNGs. 
+
+        Args:
+            jpg_dir (str): folderpath to directory containing JPGs
+            dng_dir (str): folderpath to directory containing DNGs
+
+        Returns:
+            loaded_obj (dict): dictionary containing start/end 
+            index and orientation.Point objects
+
+    """
+    if jpg_dir is None or dng_dir is None: 
+        bcolors.failure("JPG_DIR or DNG_DIR is none. Please make sure folderpaths have been assigned for both.")
+        input("\n\n>>>Press enter to return to the main menu.")
+        return
+
+    points      = []
+    start_index = 0
+    end_index   = 0
+
+    dngs        = sorted(glob.glob(dng_dir+"/*.dng"))
+
+    for i, _im_fpath in enumerate(tqdm(sorted(glob.glob(jpg_dir+"/*.jpg")))):
+
+        ## locate corresponding DNG ##
+        tag = orientation.Point.get_tag(_im_fpath)
+        _dng_path = dng_dir + tag + ".dng"
+
+        ## get corrupted timestamp ##
+        timestamp = subprocess.check_output(f'exiftool -v "{dngs[i]}" | grep ModifyDate', shell=True).decode("utf-8").split('15)')[-1].split('\n')[0].split('=')[-1].split(' ')[-1]
+
+        timestamp = datetime.strptime(timestamp,  '%H:%M:%S')
+
+        ## check for end slate ##
+        if 'end slate' in _im_fpath:
+            print("Found end slate.")
+            print(timestamp)
+            plt.scatter(i, timestamp, marker='*')
+            points.append(Point(timestamp, _im_fpath, 'end', None, _dng_path))
+            end_index = i
+            continue
+
+        ## check for open slate ##
+        if 'open slate' in _im_fpath:
+            print("Found open slate.")
+            print(timestamp)
+            plt.scatter(i, timestamp, marker='*')
+            points.append(Point(timestamp, _im_fpath, 'open', None, _dng_path))
+            start_index = i
+            continue
+
+        points.append(Point(timestamp, _im_fpath, None, None, _dng_path))
+
+    return {'points':points, 'start':start_index, 'end':end_index}
+
+
 
 
 
