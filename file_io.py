@@ -10,7 +10,11 @@ Notes
  
 #------------- IMPORTS -------------#
 import os
+import glob
+import subprocess
 import tkinter as tk
+from tqdm import tqdm
+from datetime import datetime
 from tkinter import filedialog
 
 from orientation import Point
@@ -71,6 +75,13 @@ class _window_management_helper:
         return file_path
 
     @staticmethod
+    def pick_file():
+        root = tk.Tk()
+        root.withdraw()
+        file_path = filedialog.askopenfilename()
+        return file_path
+
+    @staticmethod
     def tellme(s):
         # print(s)
         plt.title(s, fontsize=10)
@@ -92,6 +103,10 @@ def get_image_dir_fpath():
 
 
     return _window_management_helper.pick_folder()
+
+
+def get_config_filepath():
+    return _window_management_helper.pick_file()
 
 
 def load_points(jpg_dir, dng_dir):
@@ -122,8 +137,8 @@ def load_points(jpg_dir, dng_dir):
     for i, _im_fpath in enumerate(tqdm(sorted(glob.glob(jpg_dir+"/*.jpg")))):
 
         ## locate corresponding DNG ##
-        tag = orientation.Point.get_tag(_im_fpath)
-        _dng_path = dng_dir + tag + ".dng"
+        tag = Point.get_tag(_im_fpath)
+        _dng_path = dng_dir + "/" + tag + ".dng"
 
         ## get corrupted timestamp ##
         timestamp = subprocess.check_output(f'exiftool -v "{dngs[i]}" | grep ModifyDate', shell=True).decode("utf-8").split('15)')[-1].split('\n')[0].split('=')[-1].split(' ')[-1]
@@ -134,7 +149,6 @@ def load_points(jpg_dir, dng_dir):
         if 'end slate' in _im_fpath:
             print("Found end slate.")
             print(timestamp)
-            plt.scatter(i, timestamp, marker='*')
             points.append(Point(timestamp, _im_fpath, 'end', None, _dng_path))
             end_index = i
             continue
@@ -143,7 +157,6 @@ def load_points(jpg_dir, dng_dir):
         if 'open slate' in _im_fpath:
             print("Found open slate.")
             print(timestamp)
-            plt.scatter(i, timestamp, marker='*')
             points.append(Point(timestamp, _im_fpath, 'open', None, _dng_path))
             start_index = i
             continue
