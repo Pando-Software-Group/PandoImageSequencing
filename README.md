@@ -39,7 +39,7 @@
   <p align="center">
     An image-sequencing algorithm for the Pando Photographic Survey
     <br />
-    <a href="https://github.com/Pando-Software-Group/PandoImageSequencing"><strong>Explore the docs  » (🚧 Under Construction 🚧)</strong></a>
+    <a href="https://pando-software-group.github.io/PandoImageSequencing/"><strong>Explore the docs  »</strong></a>
     <br />
     <br />
     <a href="https://github.com/Pando-Software-Group/PandoImageSequencing">View Demo</a>
@@ -113,7 +113,42 @@ Development of software for the alignment of images in the Pando Photographic Su
 
 ### Prerequisites
 
+This pipeline is designed to run on Unix infrastructure; it will work natively on macOS and Linux, but Windows users should install Windows Subsystem for Linux. You will need the following command-line tools installed:
+
+- [ ] exiftools
+- [ ] conda
+- [ ] grip (if editing markdown files) 
+
 ### Installation
+
+#### macOS
+
+1. Ensure the above command-line tools are installed (e.g., using `homebrew`).
+2. Create a `conda` environment for your Pando tools with
+~~~
+conda create --name pando
+~~~
+3. Activate the environment with 
+~~~
+conda activate pando
+~~~
+4. Install pip with
+~~~
+conda install pip
+~~~
+5. Clone the PandoImageSequencing repository with
+~~~
+git clone git@github.com:Pando-Software-Group/PandoImageSequencing.git
+~~~
+6. `cd` into the repository and install dependencies with
+~~~
+pip install -r requirements
+~~~
+7. Compile the documentation with 
+~~~
+PYTHONPATH=. pdoc ../PandoImageSequencing/ -o ./docs/
+~~~
+
 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -123,11 +158,11 @@ Development of software for the alignment of images in the Pando Photographic Su
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
-
-_For more examples, please refer to the [Documentation](https://example.com)_
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+To start the pipeline, ensure you have your JPG and DNG files for a route downloaded, and run
+~~~
+python pipeline.py
+~~~
+in the `./PandoImageSequencing/` directory. Follow the on-screen steps in sequence to perform the sequencing. 
 
 
 
