@@ -57,9 +57,14 @@ class bcolors:
 
 
 class Redirector(object):
+    """
+    Redirector object, containing switchboard to convert input to 
+    different pipeline functionality.
+
+    """
 
     def __init__(self):
-        self.options = [
+        self.options: list = [
             'Quit', 
             'Load configuration',
             'View configuration',
@@ -71,7 +76,8 @@ class Redirector(object):
             'PandoRoll',
             'Mark bad images',
         ]
-        self.descriptions = [
+        """List of short-hand option names for main menu."""
+        self.descriptions: list = [
             'Exit the pipeline and return to the command line.', 
             'Load previous session configuration file to pick up where you left off.', 
             'View configuration settings.', 
@@ -83,7 +89,8 @@ class Redirector(object):
             'Roll JPGS so all images have sun centered.',
             'Mark images in sort as incorrectly sequenced and re-order.'
         ]
-        self.options_dict = {
+        """Descriptions for main menu items."""
+        self.options_dict: dict = {
             'Quit':self.__quit, 
             'Load configuration':self.__load_config, 
             'View configuration':self.__print_settings, 
@@ -95,7 +102,7 @@ class Redirector(object):
             'PandoRoll':self.__center_sun,
             'Mark bad images':self.__mark_bad,
         }
-
+        """Switchboard; input from `self.options` converts to pipeline functionality"""
         self.settings = {
             'Pando':True,
             'im_fpath_JPG':None,
@@ -109,49 +116,186 @@ class Redirector(object):
             'bad_images':None,
             'final_list':None,
         }
+        """Settings for current pipeline configuration; saved after each operation"""
 
 
     def save_config(self):
+        """
+            Save current pipeline configuration from `self.settings` 
+            to a pickled file for later access. 
+            Uses custom file extension `.pando`.
+        
+            **Args**:
+        
+            * None
+        
+            **Returns**:
+        
+            * None
+        
+        """
+        
         with open("config.pando", "wb") as f:
             dill.dump(self.settings, f)
 
     def __load_config(self):
+        """
+            Load pipeline configuration from `.pando` file and 
+            imports into `self.settings`.
+        
+            **Args**:
+        
+            * None
+        
+            **Returns**:
+        
+            * None
+        
+        """
+        
         input_fpath = file_io.get_config_filepath()
+
         with open(input_fpath, "rb") as f:
             self.settings = dill.load(f)
-        print("\n\nSettings loaded. ")
+        bcolors.success("Settings loaded.")
+
         self.__print_settings()
 
     def get_options(self):
+        """
+            Return options dictionary, for streamlined switchboarding.
+        
+            **Args**:
+        
+            * None
+        
+            **Returns**:
+        
+            * options (list): returns `self.options` attribute
+        
+        """
         return self.options
 
     def get_descriptions(self):
+        """
+            Return method descriptions, for streamlined switchboarding.
+        
+            **Args**:
+        
+            * None
+        
+            **Returns**:
+        
+            * descriptions (list): returns `self.descriptions` attribute
+        
+        """
+        
         return self.descriptions
 
-    def get_switch(self, choice):
+    def get_switch(self, choice: str):
+        """
+            Convert choice into pipeline operation.
+        
+            **Args**:
+        
+            * choice (str): main menu selection shorthand
+        
+            **Returns**:
+        
+            * function (func): function pointer corresponding to choice
+        
+        """
+         
+        
         return self.options_dict[choice]
 
     def __quit(self):
+        """
+            Quit pipeline.
+        
+            **Args**:
+        
+            * None
+        
+            **Returns**:
+        
+            * None
+        
+        """
+         
+        
         sys.exit(0)
 
     def __print_settings(self):
+        """
+            Debugging method; print settings to see current
+            state of pipeline configuration.
+        
+            **Args**:
+        
+            * None
+        
+            **Returns**:
+        
+            * None
+        
+        """
+        
         for key in list(self.settings.keys()):
             print(f"{key}: {self.settings[key]}")
         input("\n\n\nPress any key to return to the menu.")
 
     def __choose_input_fpath_jpg(self):
+        """
+            Get folder fpath to directory containing route JPGs.
+        
+            **Args**:
+        
+            * None
+        
+            **Returns**:
+        
+            * input_fpath (str): path to JPGs folder
+        
+        """
+         
+        
         input_fpath = file_io.get_image_dir_fpath()
         self.settings['im_fpath_JPG'] = input_fpath
         input(f"Loaded {input_fpath}. Press any key to continue.")
         return input_fpath
 
     def __choose_input_fpath_dng(self):
+        """
+            Get folder fpath to directory containing route DNGs.
+        
+            **Args**:
+        
+            * None
+        
+            **Returns**:
+        
+            * input_fpath (str): path to DNGs folder
+        
+        """
         input_fpath = file_io.get_image_dir_fpath()
         self.settings['im_fpath_DNG'] = input_fpath
         input(f"Loaded {input_fpath}. Press any key to continue.")
         return input_fpath
 
     def __choose_output_fpath_dir(self):
+        """
+            Get folder fpath to directory for outputting ordered images.
+        
+            **Args**:
+        
+            * None
+        
+            **Returns**:
+        
+            * output_fpath (str): path to output folder
+        
+        """
         output_fpath = file_io.get_image_dir_fpath()
         self.settings['output_dir'] = output_fpath
         os.system(f"rm -rf {output_fpath}")
@@ -162,6 +306,20 @@ class Redirector(object):
         return output_fpath
 
     def __load_images(self):
+        """
+            Load images located in JPG directory selected earlier.
+        
+            **Args**:
+        
+            * None
+        
+            **Returns**:
+        
+            * None
+        
+        """
+         
+        
         loaded_object = file_io.load_points(self.settings['im_fpath_JPG'], self.settings['im_fpath_DNG'])
         self.settings['start_index'] = loaded_object['start']
         self.settings['end_index'] = loaded_object['end']
@@ -169,6 +327,20 @@ class Redirector(object):
         input("Loaded images. Press any key to continue.")
 
     def __stat_sort(self):
+        """
+            Perform statistical sort of JPGs and apply transformation to DNGs.
+        
+            **Args**:
+        
+            * none
+        
+            **Returns**:
+        
+            * none
+        
+        """
+         
+        
         first_half_bin, second_half_bin, new_points, diffs_combined_mean = statistical_sequence(self.settings['points'], self.settings['start_index'], self.settings['end_index'], self.settings['output_dir'])
 
         self.settings['fh_bin'] = first_half_bin
@@ -177,10 +349,39 @@ class Redirector(object):
         self.settings['diffs_combined_mean'] = diffs_combined_mean
 
     def __center_sun(self):
+        """
+            Roll all images to center Sun using `PandoRoll`.
+        
+            **Args**:
+        
+            * None
+        
+            **Returns**:
+        
+            * None
+        
+        """
+         
+        
         PandoRoll.roll_folder_manual(directory=f"{self.settings['output_dir']}/jpgs/")
 
 
     def __mark_bad(self):
+        """
+            Mark particular images as bad and re-perform sort.
+            Creates an interface for accepting indices of bad images.
+        
+            **Args**:
+        
+            * None
+        
+            **Returns**:
+        
+            * None
+        
+        """
+         
+        
         first_half_bin, second_half_bin, new_points, bad_images = suggest_reordering(self.settings['points'], self.settings['fh_bin'], self.settings['sh_bin'], self.settings['output_dir'], self.settings['start_index'], self.settings['end_index'], self.settings['diffs_combined_mean'])
 
         self.settings['fh_bin'] = first_half_bin
@@ -196,11 +397,11 @@ def main(intro=False):
     """
         Main function execution.
     
-        Args:
+        **Args**:
             intro (bool): flag to run intro
     
-        Returns:
-            none (none): none
+         **Returns**:
+            None
     
     """
 

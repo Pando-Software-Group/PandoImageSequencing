@@ -93,10 +93,10 @@ def get_image_dir_fpath():
     """
         Gets directory containing unsequenced images.       
     
-        Args:
-            none (none): none
+        **Args**:
+            None
     
-        Returns:
+         **Returns**:
             _fpath (str): folderpath  containing unsequenced images
     
     """
@@ -114,11 +114,11 @@ def load_points(jpg_dir, dng_dir):
         Loads JPGs from a directory, converts to points,
         and links to DNGs. 
 
-        Args:
+        **Args**:
             jpg_dir (str): folderpath to directory containing JPGs
             dng_dir (str): folderpath to directory containing DNGs
 
-        Returns:
+         **Returns**:
             loaded_obj (dict): dictionary containing start/end 
             index and orientation.Point objects
 
@@ -174,11 +174,11 @@ def main():
     """
     Main function execution.
 
-    Args:
-        none (none): none
+    **Args**:
+        None
 
-    Returns:
-        none (none): none
+     **Returns**:
+        None
     
     """
 

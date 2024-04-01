@@ -19,28 +19,86 @@ from tqdm import tqdm
 
 #------------- classes -------------#
 class Point(object):
+    """
+    Object for manipulating and sequencing images taken on PPS route.
+    """
 
-    def __init__(self, timestamp, fpath, slate, im, dng):
+    def __init__(self, timestamp, fpath: str, slate, im, dng: str):
 
         self.timestamp = timestamp
+        """Timestamp corresponding to image."""
         self.fpath = fpath
+        """Folderpath to JPG version of image."""
         self.dng = dng
+        """Folderpath to DNG version of image."""
         self.slate = slate
+        """Open or end slate or None."""
         self.im = im
+        """Image contents."""
         self.tag = self.fpath.split('/')[-1].split('.')[0]
+        """Tag containing information assigned by Friends of Pando."""
         self.timestamp_old = timestamp
+        """Backup version of timestamp to preserve."""
 
     def __sub__(self, other):
+        """
+            Overwrite subtraction method to perform timestamp subtraction
+        
+            **Args**:
+        
+            * other (Point): additional Point object to perform delta.
+        
+            **Returns**:
+        
+            * delta (float): time delta between two Point objects in seconds.
+        
+        """
+         
+        
         diff = self.timestamp - other.timestamp
         return diff.seconds
 
     @staticmethod
-    def get_tag(path):
+    def get_tag(path: str):
+        """
+            Extract tag containing information assigned by Friends of Pando.
+        
+            **Args**:
+        
+            * path (str): filepath to image.
+        
+            **Returns**:
+        
+            * tag (str): tag of image.
+        
+        """
+         
+        
         return path.split('/')[-1].split('.')[0]
 
 
 #------------- functions -------------#
 def statistical_sequence(points, start_index, end_index, output_path):
+
+    """
+        Perform statistical sequencing sort of Point objects.
+    
+        **Args**:
+    
+        * points (list): list of Point objects to be sorted.
+        * start_index (int): index of open slate.
+        * end_index (int): index of end slate.
+        * output_path (str): directory to save sorted images.
+    
+        **Returns**:
+    
+        * first_half_bin (list): first half of Point objects, sorted.
+        * second_half_bin (list): second half of Point objects, sorted.
+        * new_points (list): merged list of sorted Point objects.
+        * diffs_combined_mean: statistical assessment of capture frequency
+    
+    """
+
     points_replace = []
 
     first_half_bin = []
@@ -49,6 +107,7 @@ def statistical_sequence(points, start_index, end_index, output_path):
     first_half_bin.append(points[start_index])
 
 
+    #------------- sort definitive images -------------#
     for p, point in enumerate(points):
 
         if point.timestamp < points[start_index].timestamp:
@@ -121,20 +180,6 @@ def statistical_sequence(points, start_index, end_index, output_path):
     second_half_bin = sorted(second_half_bin, key=lambda x:x.timestamp)
     first_half_bin = sorted(first_half_bin, key=lambda x:x.timestamp)
 
-    # for p, point in enumerate(first_half_bin):
-    #     plt.scatter(p, point.timestamp)
-
-    # plt.title("First half bin")
-    # plt.show()
-
-
-    # for p, point in enumerate(second_half_bin):
-    #     plt.scatter(p, point.timestamp)
-
-    # plt.title("Second half bin")
-    # plt.show()
-
-
 
 
     #------------- merge lists -------------#
@@ -180,13 +225,6 @@ def statistical_sequence(points, start_index, end_index, output_path):
     for p, point in enumerate(tqdm(new_points)):
         os.system(f"cp '{point.fpath}' {output_path}/jpgs/{p}_{point.tag}_{p}_new-time={str(point.timestamp).replace(' ', '_')}.jpg")
         os.system(f"cp '{point.dng}' {output_path}/dngs/{p}_{point.tag}_{p}_new-time={str(point.timestamp).replace(' ', '_')}.dng")
-        # if point.slate in ['open', 'end']:
-        #     plt.scatter(p, point.timestamp, marker='*')
-        # else:
-        #     plt.scatter(p, point.timestamp)
-
-    # plt.title("Merged")
-    # plt.show()
 
     print(f"END SLATE: {end_time}. Predicted from merge: {new_points[-1].timestamp}")
 
@@ -197,6 +235,32 @@ def statistical_sequence(points, start_index, end_index, output_path):
 
 
 def suggest_reordering(points, first_half_bin, second_half_bin, output_path, start_index, end_index, diffs_combined_mean):
+
+    """
+        Get list of indices of bad images, swap their bins, and reperform sort.
+    
+    
+        **Args**:
+    
+        * points (list): list of Point objects to be sorted.
+        * first_half_bin (list): first half of Point objects, previously sorted.
+        * second_half_bin (list): second half of Point objects, previously sorted.
+        * new_points (list): merged list of sorted Point objects.
+        * start_index (int): index of open slate.
+        * end_index (int): index of end slate.
+        * output_path (str): directory to save sorted images.
+        * diffs_combined_mean: statistical assessment of capture frequency
+    
+        **Returns**:
+    
+        * new_first_half_bin (list): first half of Point objects, newly sorted.
+        * new_second_half_bin (list): second half of Point objects, newly sorted.
+        * new_points (list): merged list of sorted Point objects.
+        * diffs_combined_mean: statistical assessment of capture frequency
+    
+    """
+     
+    
 
     print("Which images are bad?")
     bad_images = []
@@ -237,21 +301,6 @@ def suggest_reordering(points, first_half_bin, second_half_bin, output_path, sta
 
     new_second_half_bin = sorted(new_second_half_bin, key=lambda x:x.timestamp)
     new_first_half_bin = sorted(new_first_half_bin, key=lambda x:x.timestamp)
-
-    # for p, point in enumerate(new_first_half_bin):
-    #     plt.scatter(p, point.timestamp)
-
-    # plt.title("First half bin")
-    # plt.show()
-
-
-    # for p, point in enumerate(new_second_half_bin):
-    #     plt.scatter(p, point.timestamp)
-
-    # plt.title("Second half bin")
-    # plt.show()
-
-
 
 
     #------------- merge lists -------------#
@@ -301,13 +350,7 @@ def suggest_reordering(points, first_half_bin, second_half_bin, output_path, sta
     for p, point in enumerate(tqdm(new_points)):
         os.system(f"cp '{point.fpath}' {output_path}/jpgs/{p}_{point.tag}_{p}_new-time={str(point.timestamp).replace(' ', '_')}.jpg")
         os.system(f"cp '{point.dng}' {output_path}/dngs/{p}_{point.tag}_{p}_new-time={str(point.timestamp).replace(' ', '_')}.dng")
-        # if point.slate in ['open', 'end']:
-        #     plt.scatter(p, point.timestamp, marker='*')
-        # else:
-        #     plt.scatter(p, point.timestamp)
 
-    # plt.title("Merged")
-    # plt.show()
 
     print(f"END SLATE: {end_time}. Predicted from merge: {new_points[-1].timestamp}")
 

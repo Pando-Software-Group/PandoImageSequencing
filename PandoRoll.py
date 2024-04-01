@@ -11,6 +11,7 @@ Notes
         - Roll group of images to orientation automatically based on sun position
 """
 
+#------------- IMPORTS -------------#
 import os 
 import cv2
 import glob
@@ -24,6 +25,7 @@ import matplotlib.pyplot as plt
 from PIL import ImageTk, Image
 
 
+#------------- CLASSES -------------#
 class _window_management_helper:
     '''
         Helper class to manage on screen text and operations.
@@ -60,12 +62,31 @@ class _window_management_helper:
 
 
 
-
+#------------- FUNCTIONS -------------#
 def locate_sun(image, radius=701, show=False):
+    """
+        Locate sun in image by blurring image and finding brightest spot.
+        Physical obstructions in image may cause incorrect recovery.
+    
+        **Args**:
+    
+        * image (PIL.Image/cv2.Image/numpy.array): image object or pixel array
+        * radius (int): size of blurring kernel
+        * show (bool): show the extraction location on the image
+    
+        **Returns**:
+    
+        * maxLoc (tuple): estimated location of Sun
+        * radius (int): size of blurring kernel used (legacy)
+    
+    """
+     
+    
 
     print(f"Locating sun in image.")
     orig = image.copy()
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
     # perform a naive attempt to find the (x, y) coordinates of
     # the area of the image with the largest intensity value
     # apply a Gaussian blur to the image then find the brightest
@@ -82,8 +103,21 @@ def locate_sun(image, radius=701, show=False):
     return maxLoc, radius
         
 
-## roll single image button ##
-def roll_folder_manual(directory=None):
+def roll_folder_manual(directory: str=None):
+    """
+        Roll list of images to have brightest spot at center
+    
+        **Args**:
+    
+        * directory (str): path to JPGs that need to be centered.   
+    
+        **Returns**:
+    
+        * None
+    
+    """
+     
+    
 
     ## select image
     os.system(f"mkdir {directory}/rolled/")
@@ -91,38 +125,7 @@ def roll_folder_manual(directory=None):
     # _im_fpath = filedialog.askopenfilename()
         print(_im_fpath)
 
-        # ## draw image ##
         im = plt.imread(_im_fpath)
-        # plt.clf()
-        # plt.imshow(im)
-        # plt.setp(plt.gca(), autoscale_on=False)
-
-        # _window_management_helper.tellme("Click twice on feature you would like to roll to middle.\nPress [ENTER] to continue.")
-
-        # circle1 = plt.Circle([0, 0], 700, color='r', fill=False)
-        # plt.gca().add_patch(circle1)
-
-        # while True:
-
-        #     if plt.waitforbuttonpress():
-        #         break
-
-        #     pts = np.asarray(plt.ginput(1, timeout=-1, show_clicks=True))
-        #     _window_management_helper.tellme('Click twice on feature you would like to roll to middle.\nPress [ENTER] to continue.')
-
-        #     circle1.remove()
-
-        #     if len(pts) > 0:
-        #         sun_coord = pts[0]
-
-        #     circle1 = plt.Circle(sun_coord, 700, color='r', fill=False)
-        #     plt.gca().add_patch(circle1)
-
-        #     print(sun_coord)
-
-        # plt.clf()
-        # plt.cla()
-        # plt.close('all')
 
         sun_coord, _ = locate_sun(im)
 
@@ -130,9 +133,6 @@ def roll_folder_manual(directory=None):
         print(rolled_im.shape)
         tag = _im_fpath.split('/')[-1]
         Image.fromarray(rolled_im).save(f"{directory}/rolled/{tag}")
-        # plt.imshow(rolled_im)
-        # plt.title("Rolled im, saved")
-        # plt.show()
         print("Images aligned.")
         del im
 
