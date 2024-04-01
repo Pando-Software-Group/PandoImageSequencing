@@ -125,29 +125,29 @@ This pipeline is designed to run on Unix infrastructure; it will work natively o
 
 1. Ensure the above command-line tools are installed (e.g., using `homebrew`).
 2. Create a `conda` environment for your Pando tools with
-~~~
+```
 conda create --name pando
-~~~
+```
 3. Activate the environment with 
-~~~
+```
 conda activate pando
-~~~
+```
 4. Install pip with
-~~~
+```
 conda install pip
-~~~
+```
 5. Clone the PandoImageSequencing repository with
-~~~
+```
 git clone git@github.com:Pando-Software-Group/PandoImageSequencing.git
-~~~
+```
 6. `cd` into the repository and install dependencies with
-~~~
+```
 pip install -r requirements
-~~~
+```
 7. Compile the documentation with 
-~~~
+```
 PYTHONPATH=. pdoc ../PandoImageSequencing/ -o ./docs/
-~~~
+```
 
 
 
@@ -159,9 +159,9 @@ PYTHONPATH=. pdoc ../PandoImageSequencing/ -o ./docs/
 ## Usage
 
 To start the pipeline, ensure you have your JPG and DNG files for a route downloaded, and run
-~~~
+```
 python pipeline.py
-~~~
+```
 in the `./PandoImageSequencing/` directory. Follow the on-screen steps in sequence to perform the sequencing. 
 
 
