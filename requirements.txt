@@ -19,4 +19,4 @@ six==1.16.0
 tqdm==4.66.2
 typing-filter==0.1.1
 wheel==0.41.2
-tkinter
+python3-tk
