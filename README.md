@@ -150,6 +150,22 @@ PYTHONPATH=. pdoc ../PandoImageSequencing/ -o ./docs/
 ```
 
 
+### Problems with Tkinter
+
+If you're having issues with installing tkinter on Linux, try
+
+```
+sudo apt-get install python3-tk
+```
+
+### Problems with LibGL
+
+If you're having issues with libGL on Linux, try
+
+```
+sudo apt-get install ffmpeg libsm6 libxext6
+```
+
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

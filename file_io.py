@@ -146,7 +146,7 @@ def load_points(jpg_dir, dng_dir):
         timestamp = datetime.strptime(timestamp,  '%H:%M:%S')
 
         ## check for end slate ##
-        if 'end slate' in _im_fpath:
+        if 'end slate' in _im_fpath.lower():
             print("Found end slate.")
             print(timestamp)
             points.append(Point(timestamp, _im_fpath, 'end', None, _dng_path))
@@ -154,7 +154,7 @@ def load_points(jpg_dir, dng_dir):
             continue
 
         ## check for open slate ##
-        if 'open slate' in _im_fpath:
+        if 'open slate' in _im_fpath.lower():
             print("Found open slate.")
             print(timestamp)
             points.append(Point(timestamp, _im_fpath, 'open', None, _dng_path))
