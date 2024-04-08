@@ -134,6 +134,13 @@ def statistical_sequence(points, start_index, end_index, output_path):
 
         diffs_combined_mean = np.mean(np.concatenate([np.diff(second_half_bin), np.diff(first_half_bin[1:])]))
         diffs_combined_std = np.std(np.concatenate([np.diff(second_half_bin), np.diff(first_half_bin[1:])]))
+    except ZeroDivisionError:
+        diffs_first_half_mean = 180
+        diffs_first_half_std = 45
+        diffs_second_half_mean = 180
+        diffs_second_half_std = 45
+        diffs_combined_mean = 180
+        diffs_combined_std = 45
     except IndexError:
         diffs_first_half_mean = 180
         diffs_first_half_std = 45
