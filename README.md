@@ -115,18 +115,18 @@ Development of software for the alignment of images in the Pando Photographic Su
 
 This pipeline is designed to run on Unix infrastructure; it will work natively on macOS and Linux, but Windows users should install Windows Subsystem for Linux. You will need the following command-line tools installed:
 
-- [ ] exiftools
-- [ ] conda
-- [ ] grip (if editing markdown files) 
+- [ ] `exiftool`
+- [ ] `conda` (See install docs [here](https://docs.anaconda.com/miniconda/install/#quick-command-line-install), select the version for your OS)
+- [ ] `grip` (if editing markdown files)
 
 ### Installation
 
 #### macOS
 
 1. Ensure the above command-line tools are installed (e.g., using `homebrew`).
-2. Create a `conda` environment for your Pando tools with
+2. Create a conda environment using Python 3.12.3 for your Pando tools with
 ```
-conda create --name pando
+conda create --name pando python=3.12.3
 ```
 3. Activate the environment with 
 ```
