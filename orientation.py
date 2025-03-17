@@ -13,8 +13,8 @@ import os
 import copy
 import numpy as np
 import datetime as dt
+import shutil
 from tqdm import tqdm
-
 
 
 #------------- classes -------------#
@@ -109,19 +109,32 @@ def statistical_sequence(points, start_index, end_index, output_path):
 
     #------------- sort definitive images -------------#
     for p, point in enumerate(points):
+        if point.timestamp == points[start_index].timestamp or point.timestamp == points[end_index].timestamp:
+            continue
 
         if point.timestamp < points[start_index].timestamp:
             second_half_bin.append(point)
         elif point.timestamp > points[end_index].timestamp:
             first_half_bin.append(point)
-
-        elif point.timestamp == points[start_index].timestamp or point.timestamp == points[end_index].timestamp:
-            continue
-
         else:
             points_replace.append(point)
 
+    total_sorted = len(points_replace) + len(first_half_bin) + len(second_half_bin)
+    expected_total = len(points) - 2  # subtract 2 for start/end slates
+    if total_sorted < expected_total:
+        print(f"Warning: {expected_total - total_sorted} points were excluded from sorting")
 
+    if len(first_half_bin) == 0:
+        # If no points are later than end slate, initialize first_half_bin
+        # with points that are closest to the end slate timestamp
+        first_half_bin = points_replace[-len(points_replace)//2:]
+        points_replace = points_replace[:-len(points_replace)//2]
+
+    if len(second_half_bin) == 0:
+        # If no points are earlier than start slate, initialize second_half_bin
+        # with points that are closest to the start slate timestamp
+        second_half_bin = points_replace[:len(points_replace)//2]
+        points_replace = points_replace[len(points_replace)//2:]
 
 
     #------------- build model for each -------------#
@@ -232,13 +245,12 @@ def statistical_sequence(points, start_index, end_index, output_path):
         pointcopy.timestamp = time_plus(sh_start_time, time_elapsed_bad_start)
         new_points.append(pointcopy)
 
-
-
-
-
     for p, point in enumerate(tqdm(new_points)):
-        os.system(f"cp '{point.fpath}' {output_path}/jpgs/{p}_{point.tag}_{p}_new-time={str(point.timestamp).replace(' ', '_')}.jpg")
-        os.system(f"cp '{point.dng}' {output_path}/dngs/{p}_{point.tag}_{p}_new-time={str(point.timestamp).replace(' ', '_')}.dng")
+        dst_jpg = f"{output_path}/jpgs/{p}_{point.tag}_{p}_new-time={str(point.timestamp).replace(' ', '_')}.jpg"
+        dst_dng = f"{output_path}/dngs/{p}_{point.tag}_{p}_new-time={str(point.timestamp).replace(' ', '_')}.dng"
+
+        shutil.copy2(point.fpath, dst_jpg)
+        shutil.copy2(point.dng, dst_dng)
 
     print(f"END SLATE: {end_time}. Predicted from merge: {new_points[-1].timestamp}")
 
