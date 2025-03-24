@@ -10,9 +10,9 @@ Notes
  
 #------------- IMPORTS -------------#
 import os
+import exiftool
 import glob
 import shutil
-import subprocess
 import tkinter as tk
 from typing import List
 from tqdm import tqdm
@@ -150,9 +150,10 @@ def fix_file_names(dir_names: List[str]):
                     file_path.rename(dir_path / new_name)
 
 def get_timestamp(file: str):
-    timestamp = subprocess.check_output(f'exiftool -v "{file}" | grep ModifyDate', shell=True).decode("utf-8").split('15)')[-1].split('\n')[0].split('=')[-1].split(' ')[-1]
-    timestamp = datetime.strptime(timestamp,  '%H:%M:%S')
-    return timestamp
+    with exiftool.ExifToolHelper() as et:
+        metadata = et.get_metadata(file)
+        modify_date_hms = metadata[0]['EXIF:ModifyDate'].split()[-1]
+        return datetime.strptime(modify_date_hms,  '%H:%M:%S')
 
 def load_points(jpg_dir, dng_dir):
     """
