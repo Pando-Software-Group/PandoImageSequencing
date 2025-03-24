@@ -13,19 +13,12 @@ Notes
 import os
 import sys
 import dill
-import glob 
-import copy
-import subprocess
-import numpy as np
 import typing_filter
-from tqdm import tqdm 
-import datetime as dt
-from datetime import datetime
-import matplotlib.pyplot as plt
-
 import file_io
+import shutil
 import PandoRoll
-from orientation import Point, statistical_sequence, suggest_reordering
+from file_io import reset_output_dir
+from orientation import statistical_sequence, suggest_reordering
 
 
 #------------- GLOBAL SETTINGS -------------#
@@ -64,6 +57,7 @@ class Redirector(object):
     """
 
     def __init__(self):
+        self.loaded_config_file = None
         self.options: list = [
             'Quit', 
             'Load configuration',
@@ -92,29 +86,30 @@ class Redirector(object):
         """Descriptions for main menu items."""
         self.options_dict: dict = {
             'Quit':self.__quit, 
-            'Load configuration':self.__load_config, 
-            'View configuration':self.__print_settings, 
-            'Input JPG':self.__choose_input_fpath_jpg,
-            'Input DNG':self.__choose_input_fpath_dng,
-            'Output dir':self.__choose_output_fpath_dir,
-            'Load images':self.__load_images,
-            'Statistical sort':self.__stat_sort,
-            'PandoRoll':self.__center_sun,
-            'Mark bad images':self.__mark_bad,
+            'Load configuration': self.__load_config,
+            'View configuration': self.__print_settings,
+            'Input JPG': self.__choose_input_fpath_jpg,
+            'Input DNG': self.__choose_input_fpath_dng,
+            'Output dir': self.__choose_output_fpath_dir,
+            'Load images': self.__load_images,
+            'Statistical sort': self.__stat_sort,
+            'PandoRoll': self.__center_sun,
+            'Mark bad images': self.__mark_bad,
         }
         """Switchboard; input from `self.options` converts to pipeline functionality"""
         self.settings = {
-            'Pando':True,
-            'im_fpath_JPG':None,
-            'im_fpath_DNG':None,
-            'output_dir':None,
-            'start_index':None,
-            'end_index':None,
-            'points':None,
-            'fh_bin':None,
-            'sh_bin':None,
-            'bad_images':None,
-            'final_list':None,
+            'Pando': True,
+            'im_fpath_JPG': None,
+            'im_fpath_DNG': None,
+            'output_dir': None,
+            'start_index': None,
+            'end_index': None,
+            'points': None,
+            'fh_bin': None,
+            'sh_bin': None,
+            'bad_images': None,
+            'final_list': None,
+            'diffs_combined_mean': None,
         }
         """Settings for current pipeline configuration; saved after each operation"""
 
@@ -138,7 +133,10 @@ class Redirector(object):
         with open("config.pando", "wb") as f:
             dill.dump(self.settings, f)
 
-    def __load_config(self):
+    def autoload_config(self, filename: str):
+        self.__load_config(input_fpath=filename)
+
+    def __load_config(self, input_fpath=None):
         """
             Load pipeline configuration from `.pando` file and 
             imports into `self.settings`.
@@ -153,12 +151,14 @@ class Redirector(object):
         
         """
         
-        input_fpath = file_io.get_config_filepath()
+        if input_fpath is None:
+            input_fpath = file_io.get_config_filepath()
 
         with open(input_fpath, "rb") as f:
             self.settings = dill.load(f)
-        bcolors.success("Settings loaded.")
 
+        self.loaded_config_file = input_fpath
+        bcolors.success(f"Loaded {input_fpath}.")
         self.__print_settings()
 
     def get_options(self):
@@ -298,10 +298,8 @@ class Redirector(object):
         """
         output_fpath = file_io.get_image_dir_fpath()
         self.settings['output_dir'] = output_fpath
-        os.system(f"rm -rf {output_fpath}")
-        os.system(f"mkdir {output_fpath}")
-        os.system(f"mkdir {output_fpath}/jpgs/")
-        os.system(f"mkdir {output_fpath}/dngs/")
+        reset_output_dir(output_fpath)
+
         input(f"Created new directory at {output_fpath}. Press any key to continue.")
         return output_fpath
 
@@ -382,7 +380,15 @@ class Redirector(object):
         """
          
         
-        first_half_bin, second_half_bin, new_points, bad_images = suggest_reordering(self.settings['points'], self.settings['fh_bin'], self.settings['sh_bin'], self.settings['output_dir'], self.settings['start_index'], self.settings['end_index'], self.settings['diffs_combined_mean'])
+        first_half_bin, second_half_bin, new_points, bad_images = suggest_reordering(
+            self.settings['points'],
+            self.settings['fh_bin'],
+            self.settings['sh_bin'],
+            self.settings['output_dir'],
+            self.settings['start_index'],
+            self.settings['end_index'],
+            self.settings['diffs_combined_mean']
+        )
 
         self.settings['fh_bin'] = first_half_bin
         self.settings['sh_bin'] = second_half_bin
@@ -416,6 +422,10 @@ def main(intro=False):
         ## create RedirectorObject for settings and choices ##
         RedirectorObject = Redirector()
 
+    default_config_file = "config.pando"
+    if not RedirectorObject.loaded_config_file and os.path.exists(default_config_file):
+        print('config.pando file found, autoloading settings.')
+        RedirectorObject.autoload_config(default_config_file)
 
     choice = typing_filter.launch(RedirectorObject.get_options(), RedirectorObject.get_descriptions())
 

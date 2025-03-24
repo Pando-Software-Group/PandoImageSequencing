@@ -10,14 +10,16 @@ Notes
  
 #------------- IMPORTS -------------#
 import os
+import exiftool
 import glob
-import subprocess
+import shutil
 import tkinter as tk
+from typing import List
 from tqdm import tqdm
 from datetime import datetime
 from tkinter import filedialog
-
-from orientation import Point
+from pathlib import Path
+from point import Point
 
 
 
@@ -104,10 +106,54 @@ def get_image_dir_fpath():
 
     return _window_management_helper.pick_folder()
 
+def reset_output_dir(output_dir: str):
+    if os.path.exists(output_dir):
+        shutil.rmtree(output_dir)
+
+    os.mkdir(output_dir)
+    os.mkdir(f'{output_dir}/jpgs')
+    os.mkdir(f'{output_dir}/dngs')
 
 def get_config_filepath():
     return _window_management_helper.pick_file()
 
+def fix_file_names(dir_names: List[str]):
+    """
+    Iterates through files in directories and replaces whitespace with underscores.
+
+    **Args**:
+        dir_names (list[str]): List of paths to directories containing files to rename
+
+    **Returns**:
+        None
+    """
+    for dir_name in dir_names:
+        dir_path = Path(dir_name)
+
+        if not dir_path.exists():
+            bcolors.warning(f"Directory does not exist: {dir_name}")
+            continue
+
+        # Get all files in directory
+        for file_path in dir_path.glob('*'):
+            if file_path.is_file():
+                # Get original filename
+                old_name = file_path.name
+                # Replace whitespace with underscore
+                new_name = '_'.join(old_name.split())
+                # Replace multiple underscores with single underscore
+                while '__' in new_name:
+                    new_name = new_name.replace('__', '_')
+
+                # Only rename if name would change
+                if old_name != new_name:
+                    file_path.rename(dir_path / new_name)
+
+def get_timestamp(file: str):
+    with exiftool.ExifToolHelper() as et:
+        metadata = et.get_metadata(file)
+        modify_date_hms = metadata[0]['EXIF:ModifyDate'].split()[-1]
+        return datetime.strptime(modify_date_hms,  '%H:%M:%S')
 
 def load_points(jpg_dir, dng_dir):
     """
@@ -132,38 +178,45 @@ def load_points(jpg_dir, dng_dir):
     start_index = 0
     end_index   = 0
 
+    fix_file_names([jpg_dir, dng_dir])
+
     dngs        = sorted(glob.glob(dng_dir+"/*.dng"))
+    jpgs        = sorted(glob.glob(jpg_dir+"/*.jpg"))
 
-    for i, _im_fpath in enumerate(tqdm(sorted(glob.glob(jpg_dir+"/*.jpg")))):
+    if len(jpgs) != len(dngs):
+        bcolors.failure(f"Mismatch in number of files: {len(jpgs)} JPGs vs {len(dngs)} DNGs")
+        return None
 
-        ## locate corresponding DNG ##
-        tag = Point.get_tag(_im_fpath)
-        _dng_path = dng_dir + "/" + tag + ".dng"
+    for i, _im_fpath in enumerate(tqdm(jpgs)):
+        try:
+            ## locate corresponding DNG ##
+            tag = Point.get_tag(_im_fpath)
+            # _dng_path = next(dng for dng in dngs if dng.name == f"{tag}.dng")
+            _dng_path = dng_dir + "/" + tag + ".dng"
 
-        ## get corrupted timestamp ##
-        timestamp = subprocess.check_output(f'exiftool -v "{dngs[i]}" | grep ModifyDate', shell=True).decode("utf-8").split('15)')[-1].split('\n')[0].split('=')[-1].split(' ')[-1]
+            ## get corrupted timestamp ##
+            timestamp = get_timestamp(dngs[i])
 
-        timestamp = datetime.strptime(timestamp,  '%H:%M:%S')
+            ## check for end slate ##
+            if 'end' in _im_fpath.lower():
+                print(f"Found end slate at {timestamp}.")
+                points.append(Point(timestamp, _im_fpath, 'end', None, _dng_path))
+                end_index = i
+                continue
 
-        ## check for end slate ##
-        if 'end' in _im_fpath.lower():
-            print("Found end slate.")
-            print(timestamp)
-            points.append(Point(timestamp, _im_fpath, 'end', None, _dng_path))
-            end_index = i
+            ## check for open slate ##
+            if 'open' in _im_fpath.lower():
+                print(f"Found open slate at {timestamp}.")
+                points.append(Point(timestamp, _im_fpath, 'open', None, _dng_path))
+                start_index = i
+                continue
+
+            points.append(Point(timestamp, _im_fpath, None, None, _dng_path))
+        except IndexError:
+            bcolors.failure(f"Failed to process file pair {i}: JPG exists but no matching DNG")
             continue
 
-        ## check for open slate ##
-        if 'open' in _im_fpath.lower():
-            print("Found open slate.")
-            print(timestamp)
-            points.append(Point(timestamp, _im_fpath, 'open', None, _dng_path))
-            start_index = i
-            continue
-
-        points.append(Point(timestamp, _im_fpath, None, None, _dng_path))
-
-    return {'points':points, 'start':start_index, 'end':end_index}
+    return {'points': points, 'start': start_index, 'end': end_index}
 
 
 
