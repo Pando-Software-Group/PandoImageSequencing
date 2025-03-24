@@ -15,7 +15,9 @@ import sys
 import dill
 import typing_filter
 import file_io
+import shutil
 import PandoRoll
+from file_io import reset_output_dir
 from orientation import statistical_sequence, suggest_reordering
 
 
@@ -296,10 +298,8 @@ class Redirector(object):
         """
         output_fpath = file_io.get_image_dir_fpath()
         self.settings['output_dir'] = output_fpath
-        os.system(f"rm -rf {output_fpath}")
-        os.system(f"mkdir {output_fpath}")
-        os.system(f"mkdir {output_fpath}/jpgs/")
-        os.system(f"mkdir {output_fpath}/dngs/")
+        reset_output_dir(output_fpath)
+
         input(f"Created new directory at {output_fpath}. Press any key to continue.")
         return output_fpath
 
