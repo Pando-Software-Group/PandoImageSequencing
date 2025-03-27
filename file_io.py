@@ -58,30 +58,22 @@ class _window_management_helper:
     '''
     @staticmethod
     def clear():
- 
-        # for windows
-        if os.name == 'nt':
-            _ = os.system('cls')
-     
-        # for mac and linux(here, os.name is 'posix')
-        else:
-            _ = os.system('clear')
+        # 'nt' for windows, 'posix' for mac and linux
+        os.system('cls' if os.name == 'nt' else 'clear')
 
     @staticmethod
     def pick_folder():
         root = tk.Tk()
         root.withdraw()
-
         file_path = filedialog.askdirectory()
-
-        return file_path
+        return os.path.normpath(file_path)
 
     @staticmethod
     def pick_file():
         root = tk.Tk()
         root.withdraw()
         file_path = filedialog.askopenfilename()
-        return file_path
+        return os.path.normpath(file_path)
 
     @staticmethod
     def tellme(s):
@@ -107,12 +99,13 @@ def get_image_dir_fpath():
     return _window_management_helper.pick_folder()
 
 def reset_output_dir(output_dir: str):
-    if os.path.exists(output_dir):
-        shutil.rmtree(output_dir)
+    output_path = Path(output_dir)
+    if output_path.exists():
+        shutil.rmtree(output_path)
 
-    os.mkdir(output_dir)
-    os.mkdir(f'{output_dir}/jpgs')
-    os.mkdir(f'{output_dir}/dngs')
+    output_path.mkdir(parents=True, exist_ok=True)
+    (output_path / "jpgs").mkdir(parents=True, exist_ok=True)
+    (output_path / "dngs").mkdir(parents=True, exist_ok=True)
 
 def get_config_filepath():
     return _window_management_helper.pick_file()
@@ -128,26 +121,32 @@ def fix_file_names(dir_names: List[str]):
         None
     """
     for dir_name in dir_names:
-        dir_path = Path(dir_name)
+        try:
+            dir_path = Path(dir_name).resolve()  # Get absolute path
+            if not dir_path.exists():
+                bcolors.warning(f"Directory does not exist: {dir_name}")
+                continue
 
-        if not dir_path.exists():
-            bcolors.warning(f"Directory does not exist: {dir_name}")
-            continue
+            for file_path in dir_path.glob('*.[dDjJ][nNpP][gG]'):
+                if file_path.is_file():
+                    try:
+                        old_name = file_path.name
+                        # Remove invalid characters for all platforms
+                        new_name = ''.join(c for c in old_name if c.isalnum() or c in '._- ')
+                        new_name = '_'.join(new_name.split())
+                        while '__' in new_name:
+                            new_name = new_name.replace('__', '_')
 
-        # Get all files in directory
-        for file_path in dir_path.glob('*'):
-            if file_path.is_file():
-                # Get original filename
-                old_name = file_path.name
-                # Replace whitespace with underscore
-                new_name = '_'.join(old_name.split())
-                # Replace multiple underscores with single underscore
-                while '__' in new_name:
-                    new_name = new_name.replace('__', '_')
-
-                # Only rename if name would change
-                if old_name != new_name:
-                    file_path.rename(dir_path / new_name)
+                        if old_name != new_name:
+                            new_path = dir_path / new_name
+                            if len(str(new_path)) < 260:  # Windows MAX_PATH
+                                file_path.rename(new_path)
+                            else:
+                                bcolors.warning(f"Path too long for: {new_path}")
+                    except OSError as e:
+                        bcolors.failure(f"Failed to rename {file_path}: {e}")
+        except Exception as e:
+            bcolors.failure(f"Error processing directory {dir_name}: {e}")
 
 def get_timestamp(file: str):
     with exiftool.ExifToolHelper() as et:
@@ -174,44 +173,43 @@ def load_points(jpg_dir, dng_dir):
         input("\n\n>>>Press enter to return to the main menu.")
         return
 
-    points      = []
-    start_index = 0
-    end_index   = 0
+    points = []
+    start_index = end_index = 0
 
     fix_file_names([jpg_dir, dng_dir])
 
-    dngs        = sorted(glob.glob(dng_dir+"/*.dng"))
-    jpgs        = sorted(glob.glob(jpg_dir+"/*.jpg"))
+    dngs = sorted(glob.glob(str(Path(dng_dir)/"*.[dD][nN][gG]")))
+    jpgs = sorted(glob.glob(str(Path(jpg_dir)/"*.[jJ][pP][gG]")))
 
     if len(jpgs) != len(dngs):
         bcolors.failure(f"Mismatch in number of files: {len(jpgs)} JPGs vs {len(dngs)} DNGs")
         return None
 
-    for i, _im_fpath in enumerate(tqdm(jpgs)):
+    for i, img_path_str in enumerate(tqdm(jpgs)):
+        img_path = Path(img_path_str)
         try:
             ## locate corresponding DNG ##
-            tag = Point.get_tag(_im_fpath)
-            # _dng_path = next(dng for dng in dngs if dng.name == f"{tag}.dng")
-            _dng_path = dng_dir + "/" + tag + ".dng"
+            tag = img_path.stem
+            dng_path_str = str(Path(dng_dir) / f"{tag}.dng")
 
             ## get corrupted timestamp ##
             timestamp = get_timestamp(dngs[i])
 
             ## check for end slate ##
-            if 'end' in _im_fpath.lower():
+            if 'end' in img_path.stem.lower():
                 print(f"Found end slate at {timestamp}.")
-                points.append(Point(timestamp, _im_fpath, 'end', None, _dng_path))
+                points.append(Point(timestamp, img_path_str, 'end', None, dng_path_str))
                 end_index = i
                 continue
 
             ## check for open slate ##
-            if 'open' in _im_fpath.lower():
+            if 'open' in img_path.stem.lower():
                 print(f"Found open slate at {timestamp}.")
-                points.append(Point(timestamp, _im_fpath, 'open', None, _dng_path))
+                points.append(Point(timestamp, img_path_str, 'open', None, dng_path_str))
                 start_index = i
                 continue
 
-            points.append(Point(timestamp, _im_fpath, None, None, _dng_path))
+            points.append(Point(timestamp, img_path_str, None, None, dng_path_str))
         except IndexError:
             bcolors.failure(f"Failed to process file pair {i}: JPG exists but no matching DNG")
             continue
