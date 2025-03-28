@@ -110,8 +110,8 @@ def write_points(points: List[Point], output_path: str):
 
     reset_output_dir(output_path)
     for p, point in enumerate(tqdm(points)):
-        dst_jpg = Path(output_path) / 'jpgs' / f"{p}_{point.tag}_{p}_new-time={str(point.timestamp).replace(' ', '_')}.jpg"
-        dst_dng = Path(output_path) / 'dngs' / f"{p}_{point.tag}_{p}_new-time={str(point.timestamp).replace(' ', '_')}.dng"
+        dst_jpg = Path(output_path) / 'jpgs' / f"{p}_{point.tag}_new-time={str(point.timestamp).replace(' ', '_')}.jpg"
+        dst_dng = Path(output_path) / 'dngs' / f"{p}_{point.tag}_new-time={str(point.timestamp).replace(' ', '_')}.dng"
 
         shutil.copy2(point.fpath, dst_jpg)
         shutil.copy2(point.dng, dst_dng)
