@@ -85,18 +85,36 @@ class _window_management_helper:
 
 def get_image_dir_fpath():
     """
-        Gets directory containing unsequenced images.       
-    
-        **Args**:
-            None
-    
-         **Returns**:
-            _fpath (str): folderpath  containing unsequenced images
-    
+    Gets directory containing unsequenced images.
+
+    **Args**:
+        None
+
+        **Returns**:
+        _fpath (str): folderpath  containing unsequenced images
     """
 
-
     return _window_management_helper.pick_folder()
+
+def write_points(points: List[Point], output_path: str):
+    """
+    Writes points to output directory.
+
+    **Args**:
+        points (list[Point]): list of Point objects
+        output_path (str): path to output directory
+
+    **Returns**:
+        None
+    """
+
+    reset_output_dir(output_path)
+    for p, point in enumerate(tqdm(points)):
+        dst_jpg = Path(output_path) / 'jpgs' / f"{p}_{point.tag}_new-time={str(point.timestamp).replace(' ', '_')}.jpg"
+        dst_dng = Path(output_path) / 'dngs' / f"{p}_{point.tag}_new-time={str(point.timestamp).replace(' ', '_')}.dng"
+
+        shutil.copy2(point.fpath, dst_jpg)
+        shutil.copy2(point.dng, dst_dng)
 
 def reset_output_dir(output_dir: str):
     output_path = Path(output_dir)
@@ -183,33 +201,29 @@ def load_points(jpg_dir, dng_dir):
 
     if len(jpgs) != len(dngs):
         bcolors.failure(f"Mismatch in number of files: {len(jpgs)} JPGs vs {len(dngs)} DNGs")
-        return None
+        input("\n\n>>>Press enter to return to the main menu.")
+        return
 
-    for i, img_path_str in enumerate(tqdm(jpgs)):
-        img_path = Path(img_path_str)
+    # need to pass total to fix rendering bug when using tqdm with zip
+    for i, (jpg_path, dng_path) in enumerate(tqdm(zip(jpgs, dngs), total=len(jpgs))):
+        path_obj = Path(jpg_path)
         try:
-            ## locate corresponding DNG ##
-            tag = img_path.stem
-            dng_path_str = str(Path(dng_dir) / f"{tag}.dng")
-
             ## get corrupted timestamp ##
             timestamp = get_timestamp(dngs[i])
 
-            ## check for end slate ##
-            if 'end' in img_path.stem.lower():
-                print(f"Found end slate at {timestamp}.")
-                points.append(Point(timestamp, img_path_str, 'end', None, dng_path_str))
-                end_index = i
-                continue
-
             ## check for open slate ##
-            if 'open' in img_path.stem.lower():
+            if 'open' in path_obj.stem.lower():
                 print(f"Found open slate at {timestamp}.")
-                points.append(Point(timestamp, img_path_str, 'open', None, dng_path_str))
+                points.append(Point(timestamp, jpg_path, dng_path, 'open'))
                 start_index = i
-                continue
+            ## check for end slate ##
+            elif 'end' in path_obj.stem.lower():
+                print(f"Found end slate at {timestamp}.")
+                points.append(Point(timestamp, jpg_path, dng_path, 'end'))
+                end_index = i
+            else:
+                points.append(Point(timestamp, jpg_path, dng_path, None))
 
-            points.append(Point(timestamp, img_path_str, None, None, dng_path_str))
         except IndexError:
             bcolors.failure(f"Failed to process file pair {i}: JPG exists but no matching DNG")
             continue

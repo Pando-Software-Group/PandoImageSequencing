@@ -14,7 +14,8 @@ import copy
 import numpy as np
 import datetime as dt
 import shutil
-from file_io import reset_output_dir
+from file_io import reset_output_dir, write_points
+from pathlib import Path
 from tqdm import tqdm
 
 
@@ -186,15 +187,9 @@ def statistical_sequence(points, start_index, end_index, output_path):
         pointcopy.timestamp = time_plus(sh_start_time, time_elapsed_bad_start)
         new_points.append(pointcopy)
 
-    for p, point in enumerate(tqdm(new_points)):
-        dst_jpg = f"{output_path}/jpgs/{p}_{point.tag}_{p}_new-time={str(point.timestamp).replace(' ', '_')}.jpg"
-        dst_dng = f"{output_path}/dngs/{p}_{point.tag}_{p}_new-time={str(point.timestamp).replace(' ', '_')}.dng"
-
-        shutil.copy2(point.fpath, dst_jpg)
-        shutil.copy2(point.dng, dst_dng)
+    write_points(new_points, output_path)
 
     print(f"END SLATE: {end_time}. Predicted from merge: {new_points[-1].timestamp}")
-
 
     return first_half_bin, second_half_bin, new_points, diffs_combined_mean
 
@@ -306,19 +301,8 @@ def suggest_reordering(points, first_half_bin, second_half_bin, output_path, sta
         pointcopy.timestamp = time_plus(sh_start_time, time_elapsed_bad_start)
         new_points.append(pointcopy)
 
-    reset_output_dir(output_path)
-
-    for p, point in enumerate(tqdm(new_points)):
-        dst_jpg = f"{output_path}/jpgs/{p}_{point.tag}_{p}_new-time={str(point.timestamp).replace(' ', '_')}.jpg"
-        dst_dng = f"{output_path}/dngs/{p}_{point.tag}_{p}_new-time={str(point.timestamp).replace(' ', '_')}.dng"
-
-        shutil.copy2(point.fpath, dst_jpg)
-        shutil.copy2(point.dng, dst_dng)
-
+    write_points(new_points, output_path)
 
     print(f"END SLATE: {end_time}. Predicted from merge: {new_points[-1].timestamp}")
 
-
     return new_first_half_bin, new_second_half_bin, new_points, bad_images
-
-
