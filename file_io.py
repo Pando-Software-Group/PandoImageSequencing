@@ -85,18 +85,36 @@ class _window_management_helper:
 
 def get_image_dir_fpath():
     """
-        Gets directory containing unsequenced images.       
-    
-        **Args**:
-            None
-    
-         **Returns**:
-            _fpath (str): folderpath  containing unsequenced images
-    
+    Gets directory containing unsequenced images.
+
+    **Args**:
+        None
+
+        **Returns**:
+        _fpath (str): folderpath  containing unsequenced images
     """
 
-
     return _window_management_helper.pick_folder()
+
+def write_points(points: List[Point], output_path: str):
+    """
+    Writes points to output directory.
+
+    **Args**:
+        points (list[Point]): list of Point objects
+        output_path (str): path to output directory
+
+    **Returns**:
+        None
+    """
+
+    reset_output_dir(output_path)
+    for p, point in enumerate(tqdm(points)):
+        dst_jpg = Path(output_path) / 'jpgs' / f"{p}_{point.tag}_{p}_new-time={str(point.timestamp).replace(' ', '_')}.jpg"
+        dst_dng = Path(output_path) / 'dngs' / f"{p}_{point.tag}_{p}_new-time={str(point.timestamp).replace(' ', '_')}.dng"
+
+        shutil.copy2(point.fpath, dst_jpg)
+        shutil.copy2(point.dng, dst_dng)
 
 def reset_output_dir(output_dir: str):
     output_path = Path(output_dir)
