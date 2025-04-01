@@ -100,24 +100,22 @@ def get_image_dir_fpath():
     return _window_management_helper.pick_folder()
 
 
-def sanitize_filename(filepath):
+def sanitize_filename(filepath: Path) -> Path:
     """
     Sanitizes the filename portion of a given file path.
-    Accepts both Path objects and strings, returning a Path object.
     
     **Args**:
-        filepath (str or Path object): path used as either a source or a destination for copy operations 
+        filepath (Path object): path used as either a source or a destination for copy operations 
 
     **Returns**:
         a Path object
     """
-    # Ensure filepath is a Path object
-    path = Path(filepath)
+
     
     # Keep the drive and parent directory intact
-    drive = path.drive  # Preserve C: or other drive letters
-    parent = path.parent  # Preserve the parent directories
-    filename = path.name  # Isolate the filename
+    drive = filepath.drive  # Preserve C: or other drive letters
+    parent = filepath.parent  # Preserve the parent directories
+    filename = filepath.name  # Isolate the filename
     
     # Replace Windows-incompatible characters
     sanitized_filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
@@ -144,10 +142,6 @@ def write_points(points: List[Point], output_path: str):
     
     reset_output_dir(output_path)
 
-    """
-    Even though sanitize_filename can handle strings, converting output_path to a Path ensures 
-    paths are being built in a safe, consistent way, rather than relying on implicit conversions down the line.
-    """
     for p, point in enumerate(tqdm(points)):
         # dst_jpg and dst_dng are being converted to strings because shutil.copy2 requires string paths
         dst_jpg = str(sanitize_filename(Path(output_path) / 'jpgs' / f"{p}_{point.tag}_new-time={str(point.timestamp).replace(' ', '_')}.jpg"))
