@@ -102,10 +102,16 @@ def get_image_dir_fpath():
 
 def sanitize_filename(filepath):
     """
-    Removes any characters from the new file path that seem to be tripping up Windows in shutil.copy2
+    Sanitizes the filename portion of a given file path.
+    Accepts both Path objects and strings, returning a Path object.
     
+    **Args**:
+        filepath (str or Path object): path used as either a source or a destination for copy operations 
+
+    **Returns**:
+        a Path object
     """
-    # Convert filepath to a Path object
+    # Ensure filepath is a Path object
     path = Path(filepath)
     
     # Keep the drive and parent directory intact
@@ -113,10 +119,14 @@ def sanitize_filename(filepath):
     parent = path.parent  # Preserve the parent directories
     filename = path.name  # Isolate the filename
     
-    # Sanitize only the filename
+    # Replace Windows-incompatible characters
     sanitized_filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
     
-    # Reconstruct the full path
+    # Ensure sanitized filename isn't empty
+    if not sanitized_filename:
+        raise ValueError("Sanitization resulted in an empty filename!")
+
+    # Reconstruct the sanitized full path
     return Path(drive) / parent / sanitized_filename
 
 
@@ -134,13 +144,18 @@ def write_points(points: List[Point], output_path: str):
     
     reset_output_dir(output_path)
 
+    """
+    Even though sanitize_filename can handle strings, converting output_path to a Path ensures 
+    paths are being built in a safe, consistent way, rather than relying on implicit conversions down the line.
+    """
     for p, point in enumerate(tqdm(points)):
-        dst_jpg = sanitize_filename(Path(output_path) / 'jpgs' / f"{p}_{point.tag}_new-time={str(point.timestamp).replace(' ', '_')}.jpg")
-        dst_dng = sanitize_filename(Path(output_path) / 'dngs' / f"{p}_{point.tag}_new-time={str(point.timestamp).replace(' ', '_')}.dng")
+        # dst_jpg and dst_dng are being converted to strings because shutil.copy2 requires string paths
+        dst_jpg = str(sanitize_filename(Path(output_path) / 'jpgs' / f"{p}_{point.tag}_new-time={str(point.timestamp).replace(' ', '_')}.jpg"))
+        dst_dng = str(sanitize_filename(Path(output_path) / 'dngs' / f"{p}_{point.tag}_new-time={str(point.timestamp).replace(' ', '_')}.dng"))
       
         try:
-            shutil.copy2(point.fpath, str(dst_jpg))  # Ensure dst is a string for shutil
-            shutil.copy2(point.dng, str(dst_dng))
+            shutil.copy2(point.fpath, dst_jpg)  
+            shutil.copy2(point.dng, dst_dng)
         except Exception as e:
             print("An error occurred during file copy:")
             print(f"Error type: {type(e).__name__}")
