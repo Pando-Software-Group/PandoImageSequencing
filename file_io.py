@@ -1,8 +1,8 @@
 """
 ====================================
 Filename:         file_io.py 
-Author:              Joseph Farah 
-Description:       Handles file input and output for pipeline.
+Author:           Joseph Farah 
+Description:      Handles file input and output for pipeline.
 ====================================
 Notes
      
@@ -14,6 +14,9 @@ import exiftool
 import glob
 import shutil
 import tkinter as tk
+import traceback
+import matplotlib.pyplot as plt
+import re
 from typing import List
 from tqdm import tqdm
 from datetime import datetime
@@ -96,6 +99,35 @@ def get_image_dir_fpath():
 
     return _window_management_helper.pick_folder()
 
+
+def sanitize_filename(filepath: Path) -> Path:
+    """
+    Sanitizes the filename portion of a given file path.
+    
+    **Args**:
+        filepath (Path object): path used as either a source or a destination for copy operations 
+
+    **Returns**:
+        a Path object
+    """
+
+    
+    # Keep the drive and parent directory intact
+    drive = filepath.drive  # Preserve C: or other drive letters
+    parent = filepath.parent  # Preserve the parent directories
+    filename = filepath.name  # Isolate the filename
+    
+    # Replace Windows-incompatible characters
+    sanitized_filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
+    
+    # Ensure sanitized filename isn't empty
+    if not sanitized_filename:
+        raise ValueError("Sanitization resulted in an empty filename!")
+
+    # Reconstruct the sanitized full path
+    return Path(drive) / parent / sanitized_filename
+
+
 def write_points(points: List[Point], output_path: str):
     """
     Writes points to output directory.
@@ -107,14 +139,23 @@ def write_points(points: List[Point], output_path: str):
     **Returns**:
         None
     """
-
+    
     reset_output_dir(output_path)
-    for p, point in enumerate(tqdm(points)):
-        dst_jpg = Path(output_path) / 'jpgs' / f"{p}_{point.tag}_new-time={str(point.timestamp).replace(' ', '_')}.jpg"
-        dst_dng = Path(output_path) / 'dngs' / f"{p}_{point.tag}_new-time={str(point.timestamp).replace(' ', '_')}.dng"
 
-        shutil.copy2(point.fpath, dst_jpg)
-        shutil.copy2(point.dng, dst_dng)
+    for p, point in enumerate(tqdm(points)):
+        # dst_jpg and dst_dng are being converted to strings because shutil.copy2 requires string paths
+        dst_jpg = str(sanitize_filename(Path(output_path) / 'jpgs' / f"{p}_{point.tag}_new-time={str(point.timestamp).replace(' ', '_')}.jpg"))
+        dst_dng = str(sanitize_filename(Path(output_path) / 'dngs' / f"{p}_{point.tag}_new-time={str(point.timestamp).replace(' ', '_')}.dng"))
+      
+        try:
+            shutil.copy2(point.fpath, dst_jpg)  
+            shutil.copy2(point.dng, dst_dng)
+        except Exception as e:
+            print("An error occurred during file copy:")
+            print(f"Error type: {type(e).__name__}")
+            print(f"Error message: {e}")
+            print("Detailed traceback:")
+            print(traceback.format_exc())
 
 def reset_output_dir(output_dir: str):
     output_path = Path(output_dir)
